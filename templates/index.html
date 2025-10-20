@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>mosaic</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <div class="container">
+        <!-- 左パネル: 設定 -->
+        <div class="panel settings-panel">
+            <h2>設定</h2>
+            <div class="control-group">
+                <label for="video-upload">1. 動画ファイルを選択</label>
+                <input type="file" id="video-upload" accept="video/*,image/webp">
+            </div>
+
+            <div class="control-group">
+                <h3>エフェクト設定</h3>
+                <div class="control-group">
+                    <label>図形:</label>
+                    <div class="radio-item">
+                        <input type="radio" id="shape-rounded-rect" name="shape" value="rounded-rect" checked>
+                        <label for="shape-rounded-rect" class="radio-label">四角形</label>
+                    </div>
+                    <div class="radio-item">
+                        <input type="radio" id="shape-ellipse" name="shape" value="ellipse">
+                        <label for="shape-ellipse" class="radio-label">円</label>
+                    </div>
+                </div>
+                <label for="effect-type">種類:</label>
+                <select id="effect-type">
+                    <option value="block">ブロック</option>
+                    <option value="blur">ぼかし</option>
+                    <option value="fill">塗りつぶし</option>
+                    <option value="image">画像</option>
+                </select>
+                <br>
+                <div id="strength-setting">
+                    <label for="mosaic-strength">強さ:</label>
+                    <input type="range" id="mosaic-strength" min="5" max="50" value="10">
+                </div>
+                <div id="radius-setting" style="display: none;">
+                    <label for="border-radius-slider">丸み:</label>
+                    <input type="range" id="border-radius-slider" min="0" max="100" value="10">
+                </div>
+                <div id="color-setting" style="display: none;">
+                    <label for="fill-color">色:</label>
+                    <input type="color" id="fill-color" value="#ff0000">
+                </div>
+                <div id="image-setting" style="display: none;">
+                    <label for="image-upload">画像ファイル:</label>
+                    <input type="file" id="image-upload" accept="image/jpeg,image/png,image/webp,image/gif">
+                    <br>
+                    <!-- Placeholder for image manipulation controls -->
+                </div>
+                <div id="opacity-setting" style="display: none;">
+                    <label for="fill-opacity">不透明度:</label>
+                    <input type="range" id="fill-opacity" min="0" max="1" step="0.1" value="1">
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>動画のトリミング (crop)</h3>
+                <div id="edit-mode-selector">
+                    <input type="radio" id="mode-shapes" name="editMode" value="shapes" checked>
+                    <label for="mode-shapes">モザイク編集</label>
+                    <input type="radio" id="mode-crop" name="editMode" value="crop">
+                    <label for="mode-crop">トリミング範囲指定</label>
+                </div>
+                <div id="crop-inputs" style="display: none;">
+                    <label for="crop-x">X:</label>
+                    <input type="number" id="crop-x" class="crop-input" min="0">
+                    <label for="crop-y">Y:</label>
+                    <input type="number" id="crop-y" class="crop-input" min="0">
+                    <br>
+                    <label for="crop-w">W:</label>
+                    <input type="number" id="crop-w" class="crop-input" min="0">
+                    <label for="crop-h">H:</label>
+                    <input type="number" id="crop-h" class="crop-input" min="0">
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>フレーム範囲の指定</h3>
+                <label for="delete-start">開始フレーム:</label>
+                <input type="number" id="delete-start" placeholder="例: 100">
+                <button id="set-delete-start-button" class="set-frame-button" title="現在フレームを開始位置に設定"><i class="fa-solid fa-arrow-down-to-bracket"></i> 現在位置</button>
+                <br>
+                <label for="delete-end">終了フレーム:</label>
+                <input type="number" id="delete-end" placeholder="例: 200">
+                <button id="set-delete-end-button" class="set-frame-button" title="現在フレームを終了位置に設定"><i class="fa-solid fa-arrow-down-to-bracket"></i> 現在位置</button>
+            </div>
+
+            <div class="control-group">
+                <h3>設定の保存と復元</h3>
+                <button id="export-settings-button"><i class="fa-solid fa-file-export"></i> エクスポート</button>
+                <label class="button-like-label" for="import-settings-input"><i class="fa-solid fa-file-import"></i> インポート</label>
+                <input type="file" id="import-settings-input" accept=".json,.txt" style="display: none;">
+                <button id="clear-processed-button" class="danger"><i class="fa-solid fa-broom"></i> 完成動画を全削除</button>
+            </div>
+
+            <div class="control-group">
+                <button id="process-button" class="primary"><i class="fa-solid fa-film"></i> 動画を処理</button>
+                <button id="toggle-quality-settings" class="icon-button" title="画質設定"><i class="fa-solid fa-sliders"></i></button>
+            </div>
+
+            <div id="quality-settings" class="control-group collapsible collapsed">
+                <h3>画質設定</h3>
+                <label for="quality-slider">品質:</label>
+                <div class="slider-labels">
+                    <span>低画質 (ファイル小)</span>
+                    <span>標準</span>
+                    <span>高画質 (ファイル大)</span>
+                </div>
+                <input type="range" id="quality-slider" min="0" max="10" value="5">
+            </div>
+
+            <div id="status"></div>
+        </div>
+
+        <!-- 中央パネル: プレビュー -->
+        <div class="panel preview-panel">
+            <div id="video-container">
+                <video id="video-preview"></video>
+                <canvas id="canvas-overlay"></canvas>
+            </div>
+            <input type="range" id="timeline" class="timeline" value="0" step="1">
+            <div class="timeline-info">
+                (<span id="current-frame">0</span> / <span id="total-frames">0</span> frames)
+            </div>
+            <div class="playback-controls">
+                <button id="start-button" class="icon-button" title="最初へ"><i class="fa-solid fa-backward-fast"></i></button>
+                <button id="prev-frame-button" class="icon-button" title="前のフレーム"><i class="fa-solid fa-backward-step"></i></button>
+                <button id="play-pause-button" class="icon-button" title="再生/一時停止"><i class="fa-solid fa-play"></i></button>
+                <button id="next-frame-button" class="icon-button" title="次のフレーム"><i class="fa-solid fa-forward-step"></i></button>
+                <button id="end-button" class="icon-button" title="最後へ"><i class="fa-solid fa-forward-fast"></i></button>
+            </div>
+             <div class="control-group">
+                <button id="delete-keyframe-button"><i class="fa-solid fa-trash-can"></i> 選択モザイクを削除</button>
+            </div>
+        </div>
+
+        <!-- 右パネル: レイヤーとモザイク -->
+        <div class="panel keyframes-panel">
+            <h2>レイヤー</h2>
+            <div class="layer-controls">
+                <button id="add-layer-button"><i class="fa-solid fa-plus"></i> レイヤーを追加</button>
+                <button id="delete-layer-button"><i class="fa-solid fa-trash-can"></i> 選択中レイヤーを削除</button>
+            </div>
+            <ul id="layers-list">
+                <!-- レイヤーがここに追加されます -->
+            </ul>
+            <hr>
+            <h2>選択中レイヤーのモザイク</h2>
+            <ul id="keyframes-list">
+                <!-- モザイクがここに追加されます -->
+            </ul>
+            <div id="selected-keyframe-editor" style="display: none;">
+                <hr>
+                <h4>選択中のモザイク情報</h4>
+                <!-- Rectangle Inputs -->
+                <div id="rect-inputs">
+                    <label>X:</label><input type="number" id="shape-x" class="shape-input">
+                    <label>Y:</label><input type="number" id="shape-y" class="shape-input">
+                    <br>
+                    <label>W:</label><input type="number" id="shape-w" class="shape-input">
+                    <label>H:</label><input type="number" id="shape-h" class="shape-input">
+
+                </div>
+                <!-- Ellipse Inputs -->
+                <div id="ellipse-inputs">
+                    <label>CX:</label><input type="number" id="shape-cx" class="shape-input">
+                    <label>CY:</label><input type="number" id="shape-cy" class="shape-input">
+                    <br>
+                    <label>RX:</label><input type="number" id="shape-rx" class="shape-input">
+                    <label>RY:</label><input type="number" id="shape-ry" class="shape-input">
+                </div>
+                <!-- Common Inputs -->
+                <div>
+                    <label>Angle:</label><input type="number" id="shape-rotation" class="shape-input">
+                </div>
+                <button id="add-keyframe-from-values-button"><i class="fa-solid fa-plus"></i> 数値からモザイク追加</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

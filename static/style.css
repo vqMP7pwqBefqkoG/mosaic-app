@@ -1,0 +1,346 @@
+/* --- CSS Variables for Dark Theme --- */
+:root {
+    --bg-color: #1a1a1a;
+    --panel-bg-color: #2a2a2a;
+    --border-color: #444;
+    --text-color: #e0e0e0;
+    --text-color-muted: #888;
+    --primary-color: #007bff;
+    --primary-color-hover: #0056b3;
+    --secondary-color: #495057;
+    --secondary-color-hover: #343a40;
+    --danger-color: #dc3545;
+    --danger-color-hover: #c82333;
+    --font-family: 'Noto Sans JP', sans-serif;
+}
+
+/* --- General Styles --- */
+body {
+    font-family: var(--font-family);
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    margin: 0;
+    padding: 20px;
+    font-size: 14px;
+}
+
+h1, h2, h3, h4 {
+    color: var(--text-color);
+    font-weight: 500;
+}
+
+h1 {
+    text-align: center;
+    font-weight: 700;
+    margin-bottom: 30px;
+}
+
+h2 {
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px;
+    margin-top: 0;
+}
+
+h3 {
+    font-size: 1.1em;
+    color: var(--primary-color);
+    margin-top: 0;
+}
+
+label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+.radio-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.radio-label {
+    display: inline-block; /* Override generic label style */
+    margin-bottom: 0;
+    margin-left: 8px;
+    font-weight: 400; /* Normal weight for radio labels */
+}
+
+/* --- Layout --- */
+.container {
+    display: flex;
+    gap: 20px;
+    max-width: 1800px;
+    margin: 0 auto;
+}
+
+.panel {
+    background-color: var(--panel-bg-color);
+    border-radius: 8px;
+    padding: 20px;
+    border: 1px solid var(--border-color);
+}
+
+.settings-panel { flex: 1; min-width: 300px; }
+.preview-panel { flex: 3; display: flex; flex-direction: column; }
+.keyframes-panel { flex: 1; min-width: 300px; }
+
+.control-group {
+    margin-bottom: 25px;
+}
+
+.control-group-inline {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+.control-group-inline > label {
+    margin-bottom: 0;
+}
+
+/* --- Video Preview --- */
+#video-container {
+    position: relative;
+    width: 100%;
+    background-color: #000;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+#video-preview {
+    width: 100%;
+    display: block;
+    opacity: 0.5; /* Make it less prominent than the overlay */
+}
+
+#canvas-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    cursor: crosshair;
+}
+
+/* --- Timeline & Playback --- */
+.timeline-info {
+    text-align: center;
+    font-size: 0.9em;
+    color: var(--text-color-muted);
+    margin-top: 8px;
+}
+
+.playback-controls {
+    text-align: center;
+    margin: 15px 0;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+/* --- Buttons --- */
+button, .button-like-label {
+    background-color: var(--secondary-color);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 8px 15px;
+    font-size: 1em;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+button:hover, .button-like-label:hover {
+    background-color: var(--secondary-color-hover);
+    border-color: #555;
+}
+
+button.primary, #process-button {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: #fff;
+    font-weight: 700;
+}
+button.primary:hover, #process-button:hover {
+    background-color: var(--primary-color-hover);
+    border-color: var(--primary-color-hover);
+}
+
+button.danger,
+#delete-layer-button, #delete-keyframe-button {
+    background-color: var(--danger-color);
+    border-color: var(--danger-color);
+}
+button.danger:hover,
+#delete-layer-button:hover, #delete-keyframe-button:hover {
+    background-color: var(--danger-color-hover);
+    border-color: var(--danger-color-hover);
+}
+
+.icon-button {
+    padding: 8px;
+    width: 40px;
+    height: 40px;
+    font-size: 1.2em;
+    border-radius: 50%; /* Make them circular */
+}
+
+.set-frame-button {
+    padding: 4px 8px;
+    font-size: 0.9em;
+    margin-left: 5px;
+}
+
+/* --- Inputs & Sliders --- */
+input[type="number"],
+input[type="text"],
+select {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 8px;
+    width: 80px;
+}
+
+input[type="file"] {
+    font-size: 0.9em;
+}
+
+input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 8px;
+    background: var(--secondary-color);
+    border-radius: 5px;
+    outline: none;
+    opacity: 0.7;
+    transition: opacity .2s;
+}
+input[type="range"]:hover {
+    opacity: 1;
+}
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background: var(--primary-color);
+    cursor: pointer;
+    border-radius: 50%;
+}
+input[type="range"]::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    background: var(--primary-color);
+    cursor: pointer;
+    border-radius: 50%;
+}
+
+/* --- Lists (Layers & Keyframes) --- */
+#keyframes-list, #layers-list {
+    list-style-type: none;
+    padding: 0;
+    margin: 15px 0;
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+#keyframes-list li, #layers-list li {
+    background-color: var(--secondary-color);
+    border: 1px solid var(--border-color);
+    padding: 10px;
+    margin-bottom: 5px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+#keyframes-list li:hover, #layers-list li:hover {
+    background-color: var(--secondary-color-hover);
+}
+
+#keyframes-list li.selected, #layers-list li.selected {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color-hover);
+    color: #fff;
+    font-weight: 700;
+}
+
+/* --- Keyframe Editor --- */
+#selected-keyframe-editor {
+    border-top: 1px solid var(--border-color);
+    margin-top: 15px;
+    padding-top: 15px;
+}
+#selected-keyframe-editor .shape-input {
+    width: 60px;
+    margin-right: 10px;
+}
+#selected-keyframe-editor div {
+    margin-bottom: 10px;
+}
+
+/* --- Status & Misc --- */
+#status {
+    margin-top: 15px;
+    font-weight: bold;
+    color: var(--primary-color);
+}
+#status a {
+    color: #87bfff;
+}
+
+/* --- Responsive Design --- */
+@media (max-width: 1200px) {
+    .container {
+        flex-direction: column;
+    }
+    .preview-panel {
+        order: -1; /* Move preview to top */
+    }
+}
+
+/* --- Quality Settings --- */
+.collapsible {
+    max-height: 500px; /* Adjust as needed */
+    overflow: hidden;
+    transition: max-height 0.3s ease-in-out, padding 0.3s ease-in-out, border 0.3s ease-in-out;
+    border-top: 1px solid var(--border-color);
+    margin-top: 20px;
+    padding-top: 20px;
+}
+
+.collapsible.collapsed {
+    max-height: 0;
+    padding-top: 0;
+    margin-top: 0;
+    border-top: none;
+}
+
+.slider-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8em;
+    color: var(--text-color-muted);
+    margin-top: 5px;
+}
+
+#process-button {
+    flex-grow: 1;
+}
+
+#toggle-quality-settings {
+    flex-shrink: 0;
+}
+
+#effect-type {
+    min-width: 120px; /* Ensure enough space for all options */
+}
