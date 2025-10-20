@@ -424,12 +424,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function finalizeAndAddShape(shape) {
         const layer = getSelectedLayer();
-        if (!layer || Object.keys(shape).length <= 1) return {};
+        // If the shape has no width/height (i.e. it was just a click), do not add it.
+        if (!layer || !shape.w || !shape.h || shape.w === 0 || shape.h === 0) {
+            return {}; // Return an empty object to clear currentShape
+        }
+
         const shapeToAdd = { ...shape };
         if (shapeToAdd.type === 'rect' || shapeToAdd.type === 'rounded-rect') {
             if (shapeToAdd.w < 0) { shapeToAdd.x += shapeToAdd.w; shapeToAdd.w = -shapeToAdd.w; }
             if (shapeToAdd.h < 0) { shapeToAdd.y += shapeToAdd.h; shapeToAdd.h = -shapeToAdd.h; }
         }
+
         const newKeyframe = { id: nextKeyframeId++, rotation: 0, ...shapeToAdd };
         layer.keyframes[currentFrame] = [newKeyframe];
         selectedKeyframeId = newKeyframe.id;

@@ -278,7 +278,7 @@ def process_video():
         if not is_webp:
             command.extend(['-i', original_video_path]) # Audio source
 
-        command.extend(['-c:v', 'libx264', '-crf', str(crf_value), '-preset', 'medium'])
+        command.extend(['-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', str(crf_value), '-preset', 'medium'])
 
         if not is_webp:
             command.extend(['-c:a', 'aac', '-b:a', '128k', '-map', '0:v:0', '-map', '1:a:0?'])
@@ -308,6 +308,10 @@ def process_video():
             if is_webp and frame.shape[2] == 4:
                 frame = cv2.cvtColor(frame, cv2.COLOR_RGBA2BGR)
             
+            # --- Apply Effects (Frame by Frame) ---
+            processed_frame = frame
+            
+            # Get shapes for the current frame (including interpolated ones)
             shapes_to_apply = []
             for layer in layers:
                 kf_data = layer['keyframes']
@@ -330,11 +334,12 @@ def process_video():
                                     interp_shape.update({'cx': get_interpolated_value(s1['cx'], s2['cx'], t), 'cy': get_interpolated_value(s1['cy'], s2['cy'], t), 'rx': get_interpolated_value(s1['rx'], s2['rx'], t), 'ry': get_interpolated_value(s1['ry'], s2['ry'], t)})
                                 shapes_to_apply.append(interp_shape)
 
-            processed_frame = frame
+            # Crop frame
             if crop_data and crop_data.get('w', 0) > 0 and crop_data.get('h', 0) > 0:
                 cx, cy, cw, ch = int(crop_data['x']), int(crop_data['y']), int(crop_data['w']), int(crop_data['h'])
                 processed_frame = processed_frame[max(0, cy):cy+ch, max(0, cx):cx+cw]
 
+            # Apply mosaic/blur effects if any shapes are present
             if shapes_to_apply:
                 mask = np.zeros(processed_frame.shape[:2], dtype=np.uint8)
                 for shape in shapes_to_apply:
