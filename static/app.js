@@ -996,6 +996,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             statusDiv.innerHTML = '動画の準備ができました。';
+            updatePlaybackControls();
         } catch (error) {
             statusDiv.innerHTML = `エラー: ${error.message}`;
             console.error('Error getting video info:', error);
@@ -1021,12 +1022,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function updatePlaybackControls() {
+        if (!videoFile) return;
+        prevFrameButton.disabled = currentFrame <= 0;
+        nextFrameButton.disabled = currentFrame >= lastFrameIndex;
+        startButton.disabled = currentFrame <= 0;
+        endButton.disabled = currentFrame >= lastFrameIndex;
+    }
+
     videoPreview.addEventListener('seeked', () => {
         const newFrame = Math.min(Math.round(videoPreview.currentTime * videoFps), lastFrameIndex);
         currentFrame = newFrame;
         timeline.value = newFrame;
         currentFrameElem.textContent = newFrame;
         updateShapeEditor();
+        updatePlaybackControls();
     });
 
     videoPreview.addEventListener('timeupdate', () => {
@@ -1040,6 +1050,7 @@ document.addEventListener('DOMContentLoaded', () => {
             currentFrame = newFrame;
             currentFrameElem.textContent = newFrame;
             if (!timeline.dragging) { timeline.value = newFrame; }
+            updatePlaybackControls();
         }
     });
 
@@ -1059,6 +1070,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (totalFrameCount > 0) {
             seekToFrame(lastFrameIndex);
         }
+        updatePlaybackControls();
     });
 
     function seekToFrame(frame) {
@@ -1092,6 +1104,7 @@ document.addEventListener('DOMContentLoaded', () => {
             timeline.value = newFrame;
             currentFrameElem.textContent = newFrame;
             updateShapeEditor();
+            updatePlaybackControls();
         }
         
         // Continue the loop

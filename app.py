@@ -296,14 +296,14 @@ def process_video():
         else:
             cap.set(cv2.CAP_PROP_POS_FRAMES, loop_start)
             def video_frame_generator(c, start, end):
-                for i in range(start, end):
+                for i in range(start, end + 1):
                     ret, frame = c.read()
                     if not ret: break
                     yield i, frame
             frame_iterator = video_frame_generator(cap, loop_start, loop_end)
 
         for i, frame in frame_iterator:
-            if i >= loop_end: break
+            if i > loop_end: break
             
             if is_webp and frame.shape[2] == 4:
                 frame = cv2.cvtColor(frame, cv2.COLOR_RGBA2BGR)
