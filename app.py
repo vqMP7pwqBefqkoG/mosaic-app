@@ -257,10 +257,15 @@ def process_video():
         # --- Setup FFmpeg Process for Piping ---
         crop_data = settings.get('crop')
         output_width, output_height = width, height
+        crop_x, crop_y = 0, 0
         if crop_data and crop_data.get('w', 0) > 0 and crop_data.get('h', 0) > 0:
-            x, y, w, h = int(crop_data['x']), int(crop_data['y']), int(crop_data['w']), int(crop_data['h'])
-            output_width = min(w, width - x)
-            output_height = min(h, height - y)
+            crop_x, crop_y = int(crop_data['x']), int(crop_data['y'])
+            output_width = min(int(crop_data['w']), width - crop_x)
+            output_height = min(int(crop_data['h']), height - crop_y)
+
+        # Ensure width and height are even for x264 compatibility
+        final_width = output_width - (output_width % 2)
+        final_height = output_height - (output_height % 2)
 
         quality_slider_value = float(settings.get('quality', 5))
         crf_value = int(33 - (quality_slider_value * 1.5))
@@ -269,7 +274,7 @@ def process_video():
             'ffmpeg', '-y',
             '-f', 'rawvideo',
             '-vcodec', 'rawvideo',
-            '-s', f'{output_width}x{output_height}',
+            '-s', f'{final_width}x{final_height}',
             '-pix_fmt', 'bgr24',
             '-r', str(fps),
             '-i', '-', # Pipe input
@@ -334,10 +339,9 @@ def process_video():
                                     interp_shape.update({'cx': get_interpolated_value(s1['cx'], s2['cx'], t), 'cy': get_interpolated_value(s1['cy'], s2['cy'], t), 'rx': get_interpolated_value(s1['rx'], s2['rx'], t), 'ry': get_interpolated_value(s1['ry'], s2['ry'], t)})
                                 shapes_to_apply.append(interp_shape)
 
-            # Crop frame
-            if crop_data and crop_data.get('w', 0) > 0 and crop_data.get('h', 0) > 0:
-                cx, cy, cw, ch = int(crop_data['x']), int(crop_data['y']), int(crop_data['w']), int(crop_data['h'])
-                processed_frame = processed_frame[max(0, cy):cy+ch, max(0, cx):cx+cw]
+            # Crop frame to the final even dimensions.
+            # This ensures the frame sent to FFmpeg matches the dimensions specified in the command.
+            processed_frame = processed_frame[max(0, crop_y):crop_y+final_height, max(0, crop_x):crop_x+final_width]
 
             # Apply mosaic/blur effects if any shapes are present
             if shapes_to_apply:
