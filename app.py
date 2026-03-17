@@ -6,6 +6,7 @@ import numpy as np
 import subprocess
 import base64
 import imageio
+from PIL import Image, ImageDraw, ImageFont
 from flask import Flask, request, render_template, send_from_directory, jsonify
 
 app = Flask(__name__)
@@ -21,11 +22,13 @@ os.makedirs(PROCESSED_FOLDER, exist_ok=True)
 
 # --- ヘルパー関数 ---
 
-def apply_mosaic_effect(image, shape_mask, effect_type, strength, feather_strength, fill_color=None, fill_opacity=None):
+def apply_mosaic_effect(image, shape_mask, effect_type, strength, feather_strength, fill_color=None, fill_opacity=None, emoji_char=None, shape=None):
     image_float = image.astype(float)
 
     # 1. Create the effect layer (applied to the whole image initially)
-    if effect_type == 'blur':
+    if effect_type == 'emoji' and emoji_char and shape is not None:
+        return _apply_emoji_effect(image, shape, emoji_char)
+    elif effect_type == 'blur':
         ksize = int(strength) * 2 + 1
         effect_image = cv2.GaussianBlur(image_float, (ksize, ksize), 0)
     elif effect_type == 'block':
@@ -61,6 +64,114 @@ def apply_mosaic_effect(image, shape_mask, effect_type, strength, feather_streng
     output_image = image_float * (1 - alpha_mask) + effect_image * alpha_mask
     
     return output_image.astype(np.uint8)
+
+
+def _apply_emoji_effect(image, shape, emoji_char):
+    """PillowでemojiをラスタライズしてOpenCVフレームに合成する"""
+    h_img, w_img = image.shape[:2]
+
+    # 形状の境界ボックスを計算 (クリッピング付き)
+    shape_type = shape.get('type', 'rect')
+    if shape_type in ['rect', 'rounded-rect']:
+        sx = int(max(0, min(shape['x'], shape['x'] + shape['w'])))
+        sy = int(max(0, min(shape['y'], shape['y'] + shape['h'])))
+        sw = int(abs(shape['w']))
+        sh = int(abs(shape['h']))
+    else:  # ellipse
+        sx = int(max(0, shape['cx'] - shape['rx']))
+        sy = int(max(0, shape['cy'] - shape['ry']))
+        sw = int(shape['rx'] * 2)
+        sh = int(shape['ry'] * 2)
+
+    # 境界チェック
+    sx = max(0, min(sx, w_img - 1))
+    sy = max(0, min(sy, h_img - 1))
+    sw = max(1, min(sw, w_img - sx))
+    sh = max(1, min(sh, h_img - sy))
+
+    # 絵文字のフォントサイズ = 領域の短辺に合わせる
+    font_size = int(min(sw, sh) * 0.85)
+    if font_size < 8:
+        return image  # 小さすぎる場合はスキップ
+
+    # Pillowでemojiをレンダリング (RGBA)
+    canvas_size = max(sw, sh) * 2  # 余白を持たせて描画
+    pil_img = Image.new('RGBA', (canvas_size, canvas_size), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(pil_img)
+
+    # フォントの読み込み (Segoe UI Emoji優先)
+    font = _load_emoji_font(font_size)
+
+    # 絵文字を中央に描画
+    try:
+        bbox = draw.textbbox((0, 0), emoji_char, font=font)
+        text_w = bbox[2] - bbox[0]
+        text_h = bbox[3] - bbox[1]
+        draw_x = (canvas_size - text_w) // 2 - bbox[0]
+        draw_y = (canvas_size - text_h) // 2 - bbox[1]
+        draw.text((draw_x, draw_y), emoji_char, font=font, embedded_color=True)
+    except Exception:
+        # フォールバック: fill='white'
+        try:
+            draw.text((canvas_size // 4, canvas_size // 4), emoji_char, font=font, fill='white')
+        except Exception:
+            return image
+
+    # 絵文字画像を形状領域にリサイズ (アスペクト比維持)
+    emoji_pil = pil_img.crop(pil_img.getbbox() or (0, 0, canvas_size, canvas_size))
+    # アスペクト比を計算して sw x sh 内に収まるようにスケール
+    ew, eh = emoji_pil.size
+    if ew == 0 or eh == 0:
+        return image
+    scale = min(sw / ew, sh / eh)
+    new_w = max(1, int(ew * scale))
+    new_h = max(1, int(eh * scale))
+    emoji_pil = emoji_pil.resize((new_w, new_h), Image.LANCZOS)
+
+    # 中央配置オフセット
+    offset_x = sx + (sw - new_w) // 2
+    offset_y = sy + (sh - new_h) // 2
+
+    # OpenCV(BGR)画像をPIL(RGB)に変換して合成
+    output = image.copy()
+    img_pil = Image.fromarray(cv2.cvtColor(output, cv2.COLOR_BGR2RGB)).convert('RGBA')
+    img_pil.paste(emoji_pil, (offset_x, offset_y), emoji_pil)
+    result_bgr = cv2.cvtColor(np.array(img_pil.convert('RGB')), cv2.COLOR_RGB2BGR)
+    return result_bgr
+
+
+_emoji_font_cache = {}
+
+def _load_emoji_font(size):
+    """絵文字フォントをキャッシュ付きで読み込む"""
+    import os
+    if size in _emoji_font_cache:
+        return _emoji_font_cache[size]
+    
+    # Windowsの優先フォントパスリスト
+    candidate_paths = [
+        r'C:\Windows\Fonts\seguiemj.ttf',   # Segoe UI Emoji (Windows 10/11)
+        r'C:\Windows\Fonts\seguisym.ttf',   # Segoe UI Symbol
+        '/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf',  # Linux
+        '/System/Library/Fonts/Apple Color Emoji.ttc',        # macOS
+    ]
+    font = None
+    for path in candidate_paths:
+        if os.path.exists(path):
+            try:
+                font = ImageFont.truetype(path, size)
+                break
+            except Exception:
+                continue
+    if font is None:
+        try:
+            font = ImageFont.load_default(size=size)
+        except Exception:
+            font = ImageFont.load_default()
+    
+    _emoji_font_cache[size] = font
+    return font
+
 
 def draw_rounded_rect_mask(mask, shape):
     x, y, w, h, r = int(shape['x']), int(shape['y']), int(shape['w']), int(shape['h']), int(shape.get('borderRadius', 0))
@@ -281,12 +392,14 @@ def process_video():
         ]
 
         if not is_webp:
-            command.extend(['-i', original_video_path]) # Audio source
+            audio_ss = loop_start / fps
+            audio_t = (loop_end - loop_start + 1) / fps
+            command.extend(['-ss', str(audio_ss), '-t', str(audio_t), '-i', original_video_path]) # Audio source
 
         command.extend(['-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', str(crf_value), '-preset', 'medium'])
 
         if not is_webp:
-            command.extend(['-c:a', 'aac', '-b:a', '128k', '-map', '0:v:0', '-map', '1:a:0?'])
+            command.extend(['-c:a', 'aac', '-b:a', '128k', '-map', '0:v:0', '-map', '1:a:0?', '-shortest'])
         else:
             command.extend(['-an'])
         
@@ -346,6 +459,7 @@ def process_video():
             # Apply mosaic/blur effects if any shapes are present
             if shapes_to_apply:
                 mask = np.zeros(processed_frame.shape[:2], dtype=np.uint8)
+                emoji_shape_ref = None
                 for shape in shapes_to_apply:
                     if shape['type'] in ['rect', 'rounded-rect']:
                         if shape['w'] != 0 and shape['h'] != 0:
@@ -353,11 +467,21 @@ def process_video():
                                 cv2.drawContours(mask, [get_rotated_rect_corners(shape)], 0, 255, -1)
                             else:
                                 draw_rounded_rect_mask(mask, shape)
+                            if emoji_shape_ref is None:
+                                emoji_shape_ref = shape
                     elif shape['type'] == 'ellipse':
                         if shape['rx'] != 0 and shape['ry'] != 0:
                             cv2.ellipse(mask, (int(shape['cx']), int(shape['cy'])), (int(shape['rx']), int(shape['ry'])), shape.get('rotation', 0) * 180 / np.pi, 0, 360, 255, -1)
+                            if emoji_shape_ref is None:
+                                emoji_shape_ref = shape
                 
-                processed_frame = apply_mosaic_effect(processed_frame, mask, effect_type, settings.get('mosaicStrength', 10), 0, settings.get('fillColor'), settings.get('fillOpacity'))
+                processed_frame = apply_mosaic_effect(
+                    processed_frame, mask, effect_type,
+                    settings.get('mosaicStrength', 10), 0,
+                    settings.get('fillColor'), settings.get('fillOpacity'),
+                    emoji_char=settings.get('emojiChar'),
+                    shape=emoji_shape_ref
+                )
 
             proc.stdin.write(processed_frame.tobytes())
 

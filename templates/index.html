@@ -3,21 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>mosaic</title>
+    <title>Mosaic Editor</title>
+    <meta name="description" content="動画にモザイクや絵文字をかけるオンラインエディター">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
+
+    <h1>🎬 Mosaic Editor</h1>
 
     <div class="container">
         <!-- 左パネル: 設定 -->
         <div class="panel settings-panel">
             <h2>設定</h2>
             <div class="control-group">
-                <label for="video-upload">1. 動画ファイルを選択</label>
+                <label for="video-upload">動画ファイルを選択</label>
                 <input type="file" id="video-upload" accept="video/*,image/webp">
             </div>
 
@@ -40,6 +43,7 @@
                     <option value="blur">ぼかし</option>
                     <option value="fill">塗りつぶし</option>
                     <option value="image">画像</option>
+                    <option value="emoji">絵文字</option>
                 </select>
                 <br>
                 <div id="strength-setting">
@@ -57,12 +61,44 @@
                 <div id="image-setting" style="display: none;">
                     <label for="image-upload">画像ファイル:</label>
                     <input type="file" id="image-upload" accept="image/jpeg,image/png,image/webp,image/gif">
-                    <br>
-                    <!-- Placeholder for image manipulation controls -->
                 </div>
                 <div id="opacity-setting" style="display: none;">
                     <label for="fill-opacity">不透明度:</label>
                     <input type="range" id="fill-opacity" min="0" max="1" step="0.1" value="1">
+                </div>
+                <!-- 絵文字設定パネル -->
+                <div id="emoji-setting" style="display: none;">
+                    <label>絵文字プレビュー:</label>
+                    <div id="emoji-preview">😊</div>
+                    <label>よく使う絵文字:</label>
+                    <div class="emoji-picker" id="emoji-picker">
+                        <button class="emoji-btn selected" data-emoji="😊">😊</button>
+                        <button class="emoji-btn" data-emoji="😂">😂</button>
+                        <button class="emoji-btn" data-emoji="😍">😍</button>
+                        <button class="emoji-btn" data-emoji="🤣">🤣</button>
+                        <button class="emoji-btn" data-emoji="😎">😎</button>
+                        <button class="emoji-btn" data-emoji="🤔">🤔</button>
+                        <button class="emoji-btn" data-emoji="😭">😭</button>
+                        <button class="emoji-btn" data-emoji="😱">😱</button>
+                        <button class="emoji-btn" data-emoji="🙈">🙈</button>
+                        <button class="emoji-btn" data-emoji="🔥">🔥</button>
+                        <button class="emoji-btn" data-emoji="⭐">⭐</button>
+                        <button class="emoji-btn" data-emoji="💖">💖</button>
+                        <button class="emoji-btn" data-emoji="🎉">🎉</button>
+                        <button class="emoji-btn" data-emoji="💢">💢</button>
+                        <button class="emoji-btn" data-emoji="🚫">🚫</button>
+                        <button class="emoji-btn" data-emoji="✅">✅</button>
+                        <button class="emoji-btn" data-emoji="❌">❌</button>
+                        <button class="emoji-btn" data-emoji="❓">❓</button>
+                        <button class="emoji-btn" data-emoji="💬">💬</button>
+                        <button class="emoji-btn" data-emoji="👁️">👁️</button>
+                        <button class="emoji-btn" data-emoji="🌀">🌀</button>
+                        <button class="emoji-btn" data-emoji="⬛">⬛</button>
+                        <button class="emoji-btn" data-emoji="🟥">🟥</button>
+                        <button class="emoji-btn" data-emoji="🟦">🟦</button>
+                    </div>
+                    <label for="emoji-custom-input">カスタム絵文字 (直接入力):</label>
+                    <input type="text" id="emoji-custom-input" placeholder="例: 🎭" maxlength="4">
                 </div>
             </div>
 
@@ -106,7 +142,7 @@
                 <button id="clear-processed-button" class="danger"><i class="fa-solid fa-broom"></i> 完成動画を全削除</button>
             </div>
 
-            <div class="control-group">
+            <div class="control-group" style="display:flex; gap:8px; align-items:center;">
                 <button id="process-button" class="primary"><i class="fa-solid fa-film"></i> 動画を処理</button>
                 <button id="toggle-quality-settings" class="icon-button" title="画質設定"><i class="fa-solid fa-sliders"></i></button>
             </div>
@@ -157,14 +193,14 @@
             <ul id="layers-list">
                 <!-- レイヤーがここに追加されます -->
             </ul>
-            <hr>
+            <hr style="border-color: var(--border-color); border-style: solid; border-width: 1px 0 0 0; margin: 12px 0;">
             <h2>選択中レイヤーのモザイク</h2>
             <ul id="keyframes-list">
                 <!-- モザイクがここに追加されます -->
             </ul>
             <div id="selected-keyframe-editor" style="display: none;">
-                <hr>
-                <h4>選択中のモザイク情報</h4>
+                <hr style="border-color: var(--border-color); border-style: solid; border-width: 1px 0 0 0; margin: 12px 0;">
+                <h3>選択中のモザイク情報</h3>
                 <!-- Rectangle Inputs -->
                 <div id="rect-inputs">
                     <label>X:</label><input type="number" id="shape-x" class="shape-input">

@@ -43,6 +43,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const imageSetting = document.getElementById('image-setting');
     const imageUpload = document.getElementById('image-upload');
     const opacitySetting = document.getElementById('opacity-setting');
+    const emojiSetting = document.getElementById('emoji-setting');
+    const emojiPicker = document.getElementById('emoji-picker');
+    const emojiPreview = document.getElementById('emoji-preview');
+    const emojiCustomInput = document.getElementById('emoji-custom-input');
     const shapeEditor = document.getElementById('selected-keyframe-editor');
     const rectInputs = document.getElementById('rect-inputs');
     const ellipseInputs = document.getElementById('ellipse-inputs');
@@ -83,6 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentShape = {};
     let fillImage = null;
     let fillImageSrc = null;
+    let selectedEmoji = '😊';
     const ctx = canvasOverlay.getContext('2d');
     const handleSize = 16;
     let animationFrameId = null;
@@ -238,6 +243,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const b = parseInt(hexColor.slice(5, 7), 16);
             ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${opacity})`;
             ctx.fill();
+        } else if (effectType === 'emoji') {
+            const shapeW = (shape.type === 'rect' || shape.type === 'rounded-rect') ? Math.abs(shape.w) : shape.rx * 2;
+            const shapeH = (shape.type === 'rect' || shape.type === 'rounded-rect') ? Math.abs(shape.h) : shape.ry * 2;
+            const shapeX = (shape.type === 'rect' || shape.type === 'rounded-rect') ? Math.min(shape.x, shape.x + shape.w) : shape.cx - shape.rx;
+            const shapeY = (shape.type === 'rect' || shape.type === 'rounded-rect') ? Math.min(shape.y, shape.y + shape.h) : shape.cy - shape.ry;
+            const fontSize = Math.min(shapeW, shapeH) * 0.85;
+            if (fontSize > 4) {
+                ctx.font = `${fontSize}px serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(selectedEmoji, shapeX + shapeW / 2, shapeY + shapeH / 2);
+            }
         } else if (effectType === 'image' && fillImage) {
             const shapeW = (shape.type === 'rect' || shape.type === 'rounded-rect') ? shape.w : shape.rx * 2;
             const shapeH = (shape.type === 'rect' || shape.type === 'rounded-rect') ? shape.h : shape.ry * 2;
@@ -923,6 +940,31 @@ document.addEventListener('DOMContentLoaded', () => {
         colorSetting.style.display = (effectType === 'fill') ? 'block' : 'none';
         imageSetting.style.display = (effectType === 'image') ? 'block' : 'none';
         opacitySetting.style.display = (effectType === 'fill' || effectType === 'image') ? 'block' : 'none';
+        emojiSetting.style.display = (effectType === 'emoji') ? 'block' : 'none';
+    });
+
+    // --- Emoji Picker ---
+    emojiPicker.addEventListener('click', (e) => {
+        const btn = e.target.closest('.emoji-btn');
+        if (!btn) return;
+        // deselect all
+        emojiPicker.querySelectorAll('.emoji-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        selectedEmoji = btn.dataset.emoji;
+        emojiPreview.textContent = selectedEmoji;
+        emojiCustomInput.value = '';
+    });
+
+    emojiCustomInput.addEventListener('input', () => {
+        const val = emojiCustomInput.value.trim();
+        if (val.length > 0) {
+            // Get the first "character" (may be multi-code-point emoji)
+            const chars = [...val];
+            selectedEmoji = chars[0];
+            emojiPreview.textContent = selectedEmoji;
+            // Deselect preset buttons
+            emojiPicker.querySelectorAll('.emoji-btn').forEach(b => b.classList.remove('selected'));
+        }
     });
     mosaicStrengthSlider.addEventListener('input', () => {});
     fillColorInput.addEventListener('input', () => {});
@@ -1173,6 +1215,7 @@ document.addEventListener('DOMContentLoaded', () => {
             fillColor: fillColorInput.value,
             fillOpacity: fillOpacitySlider.value,
             fillImage: fillImageSrc,
+            emojiChar: selectedEmoji,
             quality: qualitySlider.value
         };
         const formData = new FormData();
